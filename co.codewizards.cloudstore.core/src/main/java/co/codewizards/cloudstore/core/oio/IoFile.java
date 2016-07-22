@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.URI;
+import java.nio.file.Files;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +110,7 @@ public class IoFile implements File {
 
 	@Override
 	public boolean exists() {
-		return ioFile.exists();
+		return (ioFile.exists() || Files.isSymbolicLink(ioFile.toPath()));
 	}
 
 	@Override
