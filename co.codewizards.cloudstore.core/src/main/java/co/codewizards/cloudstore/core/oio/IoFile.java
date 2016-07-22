@@ -110,7 +110,7 @@ public class IoFile implements File {
 
 	@Override
 	public boolean exists() {
-		return (ioFile.exists() || Files.isSymbolicLink(ioFile.toPath()));
+		return ioFile.exists();
 	}
 
 	@Override
