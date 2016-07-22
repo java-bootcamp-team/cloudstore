@@ -88,24 +88,34 @@ public class LocalRepoSync {
 			final File parentFile = file.getParentFile();
 			RepoFile parentRepoFile = repoFileDao.getRepoFile(localRoot, parentFile);
 			if (parentRepoFile == null) {
-				// If the file does not exist and its RepoFile neither exists, then
-				// this is in sync already and we can simply leave. This regularly
-				// happens during the deletion of a directory which is the connection-point
-				// of a remote-repository. The following re-up-sync then leads us here.
+				// If the file does not exist and its RepoFile neither exists,
+				// then
+				// this is in sync already and we can simply leave. This
+				// regularly
+				// happens during the deletion of a directory which is the
+				// connection-point
+				// of a remote-repository. The following re-up-sync then leads
+				// us here.
 				// To speed up things, we simply quit as this is a valid state.
 				if (!file.isSymbolicLink() && !file.exists() && repoFileDao.getRepoFile(localRoot, file) == null)
 					return null;
 
-				// In the unlikely event, that this is not a valid state, we simply sync all
+				// In the unlikely event, that this is not a valid state, we
+				// simply sync all
 				// and return.
 				sync(null, localRoot, new SubProgressMonitor(monitor, 99), true);
 				final RepoFile repoFile = repoFileDao.getRepoFile(localRoot, file);
-				if (repoFile != null) // if it still does not exist, we run into the re-sync below and this might quickly return null, if that is correct or otherwise sync what's needed.
+				if (repoFile != null) // if it still does not exist, we run into
+										// the re-sync below and this might
+										// quickly return null, if that is
+										// correct or otherwise sync what's
+										// needed.
 					return repoFile;
 
 				parentRepoFile = repoFileDao.getRepoFile(localRoot, parentFile);
 				if (parentRepoFile == null && parentFile.exists())
-					throw new IllegalStateException("RepoFile not found for existing file/dir: " + parentFile.getAbsolutePath());
+					throw new IllegalStateException(
+							"RepoFile not found for existing file/dir: " + parentFile.getAbsolutePath());
 			}
 
 			monitor.worked(1);
@@ -120,22 +130,31 @@ public class LocalRepoSync {
 	 * Sync the single given {@code file}.
 	 * <p>
 	 * If {@code file} is a directory, it recursively syncs all its children.
-	 * @param parentRepoFile the parent. May be <code>null</code>, if the file is the repository's root-directory.
-	 * For non-root files, this must not be <code>null</code>!
-	 * @param file the file to be synced. Must not be <code>null</code>.
-	 * @param monitor the progress-monitor. Must not be <code>null</code>.
-	 * @param recursiveChildren TODO
-	 * @return the {@link RepoFile} corresponding to the given {@code file}. Is <code>null</code>, if the given
-	 * {@code file} does not exist; otherwise it is never <code>null</code>.
+	 * 
+	 * @param parentRepoFile
+	 *            the parent. May be <code>null</code>, if the file is the
+	 *            repository's root-directory. For non-root files, this must not
+	 *            be <code>null</code>!
+	 * @param file
+	 *            the file to be synced. Must not be <code>null</code>.
+	 * @param monitor
+	 *            the progress-monitor. Must not be <code>null</code>.
+	 * @param recursiveChildren
+	 *            TODO
+	 * @return the {@link RepoFile} corresponding to the given {@code file}. Is
+	 *         <code>null</code>, if the given {@code file} does not exist;
+	 *         otherwise it is never <code>null</code>.
 	 */
-	protected RepoFile sync(final RepoFile parentRepoFile, final File file, final ProgressMonitor monitor, final boolean recursiveChildren) {
+	protected RepoFile sync(final RepoFile parentRepoFile, final File file, final ProgressMonitor monitor,
+			final boolean recursiveChildren) {
 		assertNotNull("file", file);
 		assertNotNull("monitor", monitor);
 		monitor.beginTask("Local sync...", 100);
 		try {
 			RepoFile repoFile = repoFileDao.getRepoFile(localRoot, file);
 
-			// If the type changed - e.g. from normal file to directory - or if the file was deleted
+			// If the type changed - e.g. from normal file to directory - or if
+			// the file was deleted
 			// we must delete the old instance.
 			if (repoFile != null && !isRepoFileTypeCorrect(repoFile, file)) {
 				deleteRepoFile(repoFile, false);
@@ -166,7 +185,8 @@ public class LocalRepoSync {
 						childNames.add(child.getName());
 
 						if (recursiveChildren)
-							sync(repoFile, child, new SubProgressMonitor(childSubProgressMonitor, 1), recursiveChildren);
+							sync(repoFile, child, new SubProgressMonitor(childSubProgressMonitor, 1),
+									recursiveChildren);
 					}
 				}
 				childSubProgressMonitor.done();
@@ -187,13 +207,18 @@ public class LocalRepoSync {
 	}
 
 	/**
-	 * Determines, if the type of the given {@code repoFile} matches the type
-	 * of the file in the file system referenced by the given {@code file}.
-	 * @param repoFile the {@link RepoFile} currently representing the given {@code file} in the database.
-	 * Must not be <code>null</code>.
-	 * @param file the file in the file system. Must not be <code>null</code>.
-	 * @return <code>true</code>, if both types correspond to each other; <code>false</code> otherwise. If
-	 * the file does not exist (anymore) in the file system, <code>false</code> is returned, too.
+	 * Determines, if the type of the given {@code repoFile} matches the type of
+	 * the file in the file system referenced by the given {@code file}.
+	 * 
+	 * @param repoFile
+	 *            the {@link RepoFile} currently representing the given
+	 *            {@code file} in the database. Must not be <code>null</code>.
+	 * @param file
+	 *            the file in the file system. Must not be <code>null</code>.
+	 * @return <code>true</code>, if both types correspond to each other;
+	 *         <code>false</code> otherwise. If the file does not exist
+	 *         (anymore) in the file system, <code>false</code> is returned,
+	 *         too.
 	 */
 	public boolean isRepoFileTypeCorrect(final RepoFile repoFile, final File file) {
 		assertNotNull("repoFile", repoFile);
@@ -215,7 +240,8 @@ public class LocalRepoSync {
 		final long fileLastModified = file.getLastModifiedNoFollow();
 		if (repoFile.getLastModified().getTime() != fileLastModified) {
 			if (logger.isDebugEnabled()) {
-				logger.debug("isModified: repoFile.lastModified != file.lastModified: repoFile.lastModified={} file.lastModified={} file={}",
+				logger.debug(
+						"isModified: repoFile.lastModified != file.lastModified: repoFile.lastModified={} file.lastModified={} file={}",
 						repoFile.getLastModified(), new Date(fileLastModified), file);
 			}
 			return true;
@@ -230,25 +256,28 @@ public class LocalRepoSync {
 			try {
 				fileSymlinkTarget = file.readSymbolicLinkToPathString();
 			} catch (final IOException e) {
-				//as this is already checked as symbolicLink, this should never happen!
+				// as this is already checked as symbolicLink, this should never
+				// happen!
 				throw new IllegalArgumentException(e);
 			}
 			return !fileSymlinkTarget.equals(symlink.getTarget());
-		}
-		else if (file.isFile()) {
+		} else if (file.isFile()) {
 			if (!(repoFile instanceof NormalFile))
 				throw new IllegalArgumentException("repoFile is not an instance of NormalFile! file=" + file);
 
 			final NormalFile normalFile = (NormalFile) repoFile;
 			if (normalFile.getLength() != file.length()) {
 				if (logger.isDebugEnabled()) {
-					logger.debug("isModified: normalFile.length != file.length: repoFile.length={} file.length={} file={}",
+					logger.debug(
+							"isModified: normalFile.length != file.length: repoFile.length={} file.length={} file={}",
 							normalFile.getLength(), file.length(), file);
 				}
 				return true;
 			}
 
-			if (normalFile.getFileChunks().isEmpty()) // TODO remove this - only needed for downward compatibility!
+			if (normalFile.getFileChunks().isEmpty()) // TODO remove this - only
+														// needed for downward
+														// compatibility!
 				return true;
 		}
 
@@ -257,14 +286,15 @@ public class LocalRepoSync {
 
 	protected RepoFile createRepoFile(final RepoFile parentRepoFile, final File file, final ProgressMonitor monitor) {
 		if (parentRepoFile == null)
-			throw new IllegalStateException("Creating the root this way is not possible! Why is it not existing, yet?!???");
+			throw new IllegalStateException(
+					"Creating the root this way is not possible! Why is it not existing, yet?!???");
 
 		monitor.beginTask("Local sync...", 100);
 		try {
 			final RepoFile repoFile = _createRepoFile(parentRepoFile, file, new SubProgressMonitor(monitor, 98));
 
 			if (repoFile instanceof NormalFile)
-				createCopyModificationsIfPossible((NormalFile)repoFile);
+				createCopyModificationsIfPossible((NormalFile) repoFile);
 
 			monitor.worked(1);
 
@@ -292,7 +322,9 @@ public class LocalRepoSync {
 				sha(normalFile, file, new SubProgressMonitor(monitor, 99));
 			} else {
 				if (file.exists())
-					logger.warn("createRepoFile: File exists, but is neither a directory nor a normal file! Skipping: {}", file);
+					logger.warn(
+							"createRepoFile: File exists, but is neither a directory nor a normal file! Skipping: {}",
+							file);
 				else
 					logger.warn("createRepoFile: File does not exist! Skipping: {}", file);
 
@@ -310,6 +342,12 @@ public class LocalRepoSync {
 	}
 
 	public void updateRepoFile(final RepoFile repoFile, final File file, final ProgressMonitor monitor) {
+//		IgnoreRuleManager manager = new IgnoreRuleManager();
+//		if (manager.isExcluded(repoFile)) {
+//			logger.debug(repoFile.getPath() + " is in the excluded file list");
+//			return;
+//		}
+		logger.debug(repoFile.getPath() + "  is being updated AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 		logger.debug("updateRepoFile: id={} file={}", repoFile.getId(), file);
 		monitor.beginTask("Local sync...", 100);
 		try {
@@ -323,8 +361,7 @@ public class LocalRepoSync {
 				} catch (final IOException e) {
 					throw new RuntimeException(e);
 				}
-			}
-			else if (file.isFile()) {
+			} else if (file.isFile()) {
 				if (!(repoFile instanceof NormalFile))
 					throw new IllegalArgumentException("repoFile is not an instance of NormalFile!");
 
@@ -336,6 +373,7 @@ public class LocalRepoSync {
 		} finally {
 			monitor.done();
 		}
+		
 	}
 
 	public void deleteRepoFile(final RepoFile repoFile) {
@@ -347,9 +385,11 @@ public class LocalRepoSync {
 		if (parentRepoFile == null)
 			throw new IllegalStateException("Deleting the root is not possible!");
 
-		final PersistenceManager pm = ((co.codewizards.cloudstore.local.LocalRepoTransactionImpl)transaction).getPersistenceManager();
+		final PersistenceManager pm = ((co.codewizards.cloudstore.local.LocalRepoTransactionImpl) transaction)
+				.getPersistenceManager();
 
-		// We make sure, nothing interferes with our deletions (see comment below).
+		// We make sure, nothing interferes with our deletions (see comment
+		// below).
 		pm.flush();
 
 		if (createDeleteModifications)
@@ -357,11 +397,15 @@ public class LocalRepoSync {
 
 		deleteRepoFileWithAllChildrenRecursively(repoFile);
 
-		// DN batches UPDATE and DELETE statements. This sometimes causes foreign key violations and other errors in
-		// certain situations. Additionally, the deleted objects still linger in the 1st-level-cache and re-using them
-		// causes "javax.jdo.JDOUserException: Cannot read fields from a deleted object". This happens when switching
+		// DN batches UPDATE and DELETE statements. This sometimes causes
+		// foreign key violations and other errors in
+		// certain situations. Additionally, the deleted objects still linger in
+		// the 1st-level-cache and re-using them
+		// causes "javax.jdo.JDOUserException: Cannot read fields from a deleted
+		// object". This happens when switching
 		// from a directory to a file (or vice versa).
-		// We therefore must flush to be on the safe side. And to be extra-safe, we flush before and after deletion.
+		// We therefore must flush to be on the safe side. And to be extra-safe,
+		// we flush before and after deletion.
 		pm.flush();
 	}
 
@@ -392,8 +436,10 @@ public class LocalRepoSync {
 	}
 
 	protected void createCopyModificationsIfPossible(final NormalFile newNormalFile) {
-		// A CopyModification is not necessary for an empty file. And since this method is called
-		// during RepoTransport.beginPutFile(...), we easily filter out this unwanted case already.
+		// A CopyModification is not necessary for an empty file. And since this
+		// method is called
+		// during RepoTransport.beginPutFile(...), we easily filter out this
+		// unwanted case already.
 		// Changed to dynamic limit of CopyModifications depending on file size.
 		// The bigger the file, the more it's worth the overhead.
 		final int maxCopyModificationCount = getMaxCopyModificationCount(newNormalFile);
@@ -402,7 +448,8 @@ public class LocalRepoSync {
 
 		final Set<String> fromPaths = new HashSet<String>();
 
-		final Set<String> paths = sha1AndLength2Paths.get(getSha1AndLength(newNormalFile.getSha1(), newNormalFile.getLength()));
+		final Set<String> paths = sha1AndLength2Paths
+				.get(getSha1AndLength(newNormalFile.getSha1(), newNormalFile.getLength()));
 		if (paths != null) {
 			final List<String> pathList = new ArrayList<>(paths);
 			Collections.shuffle(pathList);
@@ -414,13 +461,20 @@ public class LocalRepoSync {
 			}
 		}
 
-		final List<NormalFile> normalFiles = new ArrayList<>(normalFileDao.getNormalFilesForSha1(newNormalFile.getSha1(), newNormalFile.getLength()));
+		final List<NormalFile> normalFiles = new ArrayList<>(
+				normalFileDao.getNormalFilesForSha1(newNormalFile.getSha1(), newNormalFile.getLength()));
 		Collections.shuffle(normalFiles);
 		for (final NormalFile normalFile : normalFiles) {
-//			if (normalFile.isInProgress()) // Additional check. Do we really want this? I don't think so!
-//				continue;
+			// if (normalFile.isInProgress()) // Additional check. Do we really
+			// want this? I don't think so!
+			// continue;
 
-			if (newNormalFile.equals(normalFile)) // should never happen, because newNormalFile is not yet persisted, but we write robust code that doesn't break easily after refactoring.
+			if (newNormalFile.equals(normalFile)) // should never happen,
+													// because newNormalFile is
+													// not yet persisted, but we
+													// write robust code that
+													// doesn't break easily
+													// after refactoring.
 				continue;
 
 			createCopyModifications(normalFile, newNormalFile, fromPaths);
@@ -428,7 +482,8 @@ public class LocalRepoSync {
 				return;
 		}
 
-		final List<DeleteModification> deleteModifications = new ArrayList<>(deleteModificationDao.getDeleteModificationsForSha1(newNormalFile.getSha1(), newNormalFile.getLength()));
+		final List<DeleteModification> deleteModifications = new ArrayList<>(deleteModificationDao
+				.getDeleteModificationsForSha1(newNormalFile.getSha1(), newNormalFile.getLength()));
 		Collections.shuffle(deleteModifications);
 		for (final DeleteModification deleteModification : deleteModifications) {
 			createCopyModifications(deleteModification, newNormalFile, fromPaths);
@@ -437,7 +492,8 @@ public class LocalRepoSync {
 		}
 	}
 
-	private void createCopyModifications(final DeleteModification deleteModification, final NormalFile toNormalFile, final Set<String> fromPaths) {
+	private void createCopyModifications(final DeleteModification deleteModification, final NormalFile toNormalFile,
+			final Set<String> fromPaths) {
 		assertNotNull("deleteModification", deleteModification);
 		assertNotNull("toNormalFile", toNormalFile);
 		assertNotNull("fromPaths", fromPaths);
@@ -451,12 +507,14 @@ public class LocalRepoSync {
 		createCopyModifications(deleteModification.getPath(), toNormalFile, fromPaths);
 	}
 
-	private void createCopyModifications(final String fromPath, final NormalFile toNormalFile, final Set<String> fromPaths) {
+	private void createCopyModifications(final String fromPath, final NormalFile toNormalFile,
+			final Set<String> fromPaths) {
 		assertNotNull("fromPath", fromPath);
 		assertNotNull("toNormalFile", toNormalFile);
 		assertNotNull("fromPaths", fromPaths);
 
-		if (!fromPaths.add(fromPath)) // already done before => prevent duplicates.
+		if (!fromPaths.add(fromPath)) // already done before => prevent
+										// duplicates.
 			return;
 
 		for (final RemoteRepository remoteRepository : getRemoteRepositories()) {
@@ -470,7 +528,8 @@ public class LocalRepoSync {
 		}
 	}
 
-	private void createCopyModifications(final NormalFile fromNormalFile, final NormalFile toNormalFile, final Set<String> fromPaths) {
+	private void createCopyModifications(final NormalFile fromNormalFile, final NormalFile toNormalFile,
+			final Set<String> fromPaths) {
 		assertNotNull("fromNormalFile", fromNormalFile);
 		assertNotNull("toNormalFile", toNormalFile);
 		assertNotNull("fromPaths", fromPaths);
@@ -491,7 +550,8 @@ public class LocalRepoSync {
 			createDeleteModification(repoFile, remoteRepository);
 	}
 
-	protected DeleteModification createDeleteModification(final RepoFile repoFile, final RemoteRepository remoteRepository) {
+	protected DeleteModification createDeleteModification(final RepoFile repoFile,
+			final RemoteRepository remoteRepository) {
 		assertNotNull("repoFile", repoFile);
 		assertNotNull("remoteRepository", remoteRepository);
 		final DeleteModification modification = createObject(DeleteModification.class);
@@ -499,7 +559,8 @@ public class LocalRepoSync {
 		return modificationDao.makePersistent(modification);
 	}
 
-	protected void populateDeleteModification(final DeleteModification modification, final RepoFile repoFile, final RemoteRepository remoteRepository) {
+	protected void populateDeleteModification(final DeleteModification modification, final RepoFile repoFile,
+			final RemoteRepository remoteRepository) {
 		assertNotNull("modification", modification);
 		assertNotNull("repoFile", repoFile);
 		assertNotNull("remoteRepository", remoteRepository);
@@ -546,7 +607,7 @@ public class LocalRepoSync {
 	}
 
 	protected void sha(final NormalFile normalFile, final File file, final ProgressMonitor monitor) {
-		monitor.beginTask("Local sync...", (int)Math.min(file.length(), Integer.MAX_VALUE));
+		monitor.beginTask("Local sync...", (int) Math.min(file.length(), Integer.MAX_VALUE));
 		try {
 			normalFile.getFileChunks().clear();
 			transaction.flush();
@@ -601,9 +662,11 @@ public class LocalRepoSync {
 			normalFile.setSha1(HashUtil.encodeHexStr(mdAll.digest()));
 			normalFile.setLength(offset);
 
-			final long fileLength = file.length(); // Important to check it now at the end.
+			final long fileLength = file.length(); // Important to check it now
+													// at the end.
 			if (fileLength != offset) {
-				logger.warn("sha: file.length() != bytesReadTotal :: File seems to be written concurrently! file='{}' file.length={} bytesReadTotal={}",
+				logger.warn(
+						"sha: file.length() != bytesReadTotal :: File seems to be written concurrently! file='{}' file.length={} bytesReadTotal={}",
 						file, fileLength, offset);
 			}
 		} catch (final NoSuchAlgorithmException e) {
@@ -616,6 +679,7 @@ public class LocalRepoSync {
 	}
 
 	protected void onFinalizeFileChunk(FileChunk fileChunk) {
-		// can be extended by sub-classes to handle FileChunk-subclasses specifically.
+		// can be extended by sub-classes to handle FileChunk-subclasses
+		// specifically.
 	}
 }

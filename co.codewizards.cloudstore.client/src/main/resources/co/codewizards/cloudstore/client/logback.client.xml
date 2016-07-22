@@ -42,7 +42,7 @@
 	<!-- END DataNucleus -->
 
 	<!-- The level of the root logger is set to INFO by default. But we want to be able to change it here. -->
-	<root level="INFO">
+	<root level="DEBUG">
 		<appender-ref ref="STDOUT" />
 		<appender-ref ref="FILE" />
 	</root>
