@@ -88,6 +88,11 @@ public class NioFile extends IoFile implements File {
 	public File getAbsoluteFile() {
 		return new NioFile(ioFile.getAbsoluteFile());
 	}
+	
+	@Override
+	public boolean exists() {
+		return (ioFile.exists() || isSymbolicLink());
+	}
 
 	@Override
 	public boolean existsNoFollow() {
