@@ -662,7 +662,6 @@ public class RepoToRepoSyncTest extends AbstractTest {
 
 		localRepoManagerLocal.putRemoteRepository(localRepoManagerRemote.getRepositoryId(), getRemoteRootUrlWithPathPrefix(), localRepoManagerRemote.getPublicKey(), localPathPrefix);
 		localRepoManagerRemote.putRemoteRepository(localRepoManagerLocal.getRepositoryId(), null, localRepoManagerLocal.getPublicKey(), remotePathPrefix);
-
 		localRepoManagerLocal.close();
 
 		final File child_1 = createDirectory(remoteRoot, "1");
@@ -671,6 +670,10 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		final File b = createRelativeSymlink(createFile(child_1, "b"), child_1_a);
 
 		final File broken = createRelativeSymlink(createFile(child_1, "broken"), createFile(child_1, "doesNotExist"));
+
+		assertThat(createFile(remoteRoot.getAbsolutePath() + "/1/", "broken").existsNoFollow()).isTrue();
+		assertThat(broken.existsNoFollow()).isTrue();
+		assertThat(broken.isSymbolicLink()).isTrue();
 
 		final long child_1_a_lastModified = System.currentTimeMillis() - (24L * 3600);
 		final long symlink_b_lastModified = System.currentTimeMillis() - (3L * 3600);
@@ -693,15 +696,28 @@ public class RepoToRepoSyncTest extends AbstractTest {
 
 		final RepoToRepoSync repoToRepoSync = new RepoToRepoSync(getLocalRootWithPathPrefix(), getRemoteRootUrlWithPathPrefix());
 		repoToRepoSync.sync(new LoggerProgressMonitor(logger));
-		repoToRepoSync.close();
 
-		localRepoManagerRemote.close();
+		assertThatNoCollisionInRepo(localRoot);
+		assertThatNoCollisionInRepo(remoteRoot);
+		assertThatFilesInRepoAreCorrect(remoteRoot);
+
+		assertDirectoriesAreEqualRecursively(getLocalRootWithPathPrefix(), getRemoteRootWithPathPrefix());
+
+		// delete broken symbolic link and normal symbolic link from remote repository
+		broken.delete();
+		b.delete();
+
+		// synchronize new changes
+		repoToRepoSync.sync(new LoggerProgressMonitor(logger));
 
 		assertThatNoCollisionInRepo(localRoot);
 		assertThatNoCollisionInRepo(remoteRoot);
 
-		assertThatFilesInRepoAreCorrect(remoteRoot);
+		// compare local and remote repositories after synchronizing changes
 		assertDirectoriesAreEqualRecursively(getLocalRootWithPathPrefix(), getRemoteRootWithPathPrefix());
+
+		repoToRepoSync.close();
+		localRepoManagerRemote.close();
 	}
 
 	@Test
