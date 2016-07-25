@@ -3,9 +3,12 @@ package co.codewizards.cloudstore.local;
 import static co.codewizards.cloudstore.core.oio.OioFileFactory.createFile;
 import static co.codewizards.cloudstore.core.repo.local.LocalRepoManager.REPOSITORY_PROPERTIES_FILE_NAME;
 
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.util.Properties;
 
 import java.util.LinkedList;
@@ -22,33 +25,42 @@ import co.codewizards.cloudstore.local.persistence.RepoFile;
 
 public class IgnoreRuleManager {
 	private static final Logger logger = LoggerFactory.getLogger(IgnoreRuleManager.class);
-	private List<IgnoreRule> exclusionList;
+	
+	private static List<IgnoreRule> exclusionList;
 
 	public IgnoreRuleManager() {
 	
 	}
 	
-	public List<IgnoreRule> getExclusionList(String filePath) {
+	public List<IgnoreRule> getExclusionList(File localRoot) {
 		if (exclusionList == null) {
 			exclusionList = new LinkedList<>();
-			this.loadExclusionsFromFile(exclusionList, filePath);
+			this.loadExclusionsFromFile(localRoot);
 		}
 		
 		return exclusionList;
 	}
 	
-	public void loadExclusionsFromFile(List<IgnoreRule> list, String filePath) {
+	public void loadExclusionsFromFile(File localRoot) {
 		
 		Properties prop = new Properties();
 		InputStream input = null;
 		
 		try {
+			System.out.println(localRoot.getAbsolutePath());
 
-			input = new FileInputStream("/home/student/Documents/client/clientrepository/.cloudstore-repo/cloudstore-repository.properties");
-
+			Writer output;
+			output = new BufferedWriter(new FileWriter(localRoot.getAbsolutePath() 
+					+ "/.cloudstore-repo/cloudstore-repository.properties"));  //clears file every time
+			output.append("nameRegex=^~.*\\$$|^.*test.*$|^.*aaa.*$");
+			
+			output.close();
+			
+			input = new FileInputStream(localRoot.getAbsolutePath() 
+					+ "/.cloudstore-repo/cloudstore-repository.properties");
 			prop.load(input);
 			
-			list.add(new IgnoreRule(prop.getProperty("nameRegex")));
+			exclusionList.add(new IgnoreRule(prop.getProperty("nameRegex")));
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -64,32 +76,20 @@ public class IgnoreRuleManager {
 		
 	}
 
-	public boolean isExcluded(RepoFile file) {
-		String filePath = file.getPath();
-		//String fileName = "/" + file.getName();
-		
-		//filePath.replaceAll(fileName, "");
+	public boolean isExcluded(File file, File localRoot) {
 		
 		if (exclusionList == null)
-			this.getExclusionList(filePath);
+			this.getExclusionList(localRoot);
 		
 		for (int i=0; i < exclusionList.size(); i++) {
 			
 			String regexPattern = (exclusionList.get(i)).getRegex();
 			
 			if ((file.getName()).matches(regexPattern))
-				//logger.warn("AAAAAAAAAAAAA file excluded:" + file.getAbsolutePath());
+				
 				return true;
 		}
-		//logger.warn("AAAAAAAAAAAAA file not excluded:" + file.getAbsolutePath());
 
 		return false;
-	}
-
-	//public static void main(String[] args) {
-	//	File file = OioFileFactory.createFile("~dgdstd$.txt");
-	//	IgnoreRuleManager mng = new IgnoreRuleManager();
-	//	System.out.println(mng.isExcluded(file));
-	//}
-		
+	}		
 }

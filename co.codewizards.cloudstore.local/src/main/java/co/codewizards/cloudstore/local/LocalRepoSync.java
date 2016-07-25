@@ -152,7 +152,12 @@ public class LocalRepoSync {
 		monitor.beginTask("Local sync...", 100);
 		try {
 			RepoFile repoFile = repoFileDao.getRepoFile(localRoot, file);
-
+			IgnoreRuleManager manager = new IgnoreRuleManager();
+			System.out.print("");
+			if (manager.isExcluded(file, localRoot)) {
+				logger.debug(file.getPath() + " is in the excluded file list");
+				return null;
+			}
 			// If the type changed - e.g. from normal file to directory - or if
 			// the file was deleted
 			// we must delete the old instance.
@@ -342,12 +347,11 @@ public class LocalRepoSync {
 	}
 
 	public void updateRepoFile(final RepoFile repoFile, final File file, final ProgressMonitor monitor) {
-//		IgnoreRuleManager manager = new IgnoreRuleManager();
-//		if (manager.isExcluded(repoFile)) {
-//			logger.debug(repoFile.getPath() + " is in the excluded file list");
-//			return;
-//		}
-		logger.debug(repoFile.getPath() + "  is being updated AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+		//IgnoreRuleManager manager = new IgnoreRuleManager();
+		//if (manager.isExcluded(file)) {
+		//	logger.debug(repoFile.getPath() + " is in the excluded file list");
+		//	return;
+		//}
 		logger.debug("updateRepoFile: id={} file={}", repoFile.getId(), file);
 		monitor.beginTask("Local sync...", 100);
 		try {

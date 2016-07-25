@@ -54,6 +54,7 @@ import co.codewizards.cloudstore.core.util.HashUtil;
 import co.codewizards.cloudstore.core.util.IOUtil;
 import co.codewizards.cloudstore.core.util.UrlUtil;
 import co.codewizards.cloudstore.local.FilenameFilterSkipMetaDir;
+import co.codewizards.cloudstore.local.IgnoreRuleManager;
 import co.codewizards.cloudstore.local.LocalRepoSync;
 import co.codewizards.cloudstore.local.dto.RepoFileDtoConverter;
 import co.codewizards.cloudstore.local.dto.RepositoryDtoConverter;
