@@ -9,15 +9,19 @@ import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.codewizards.cloudstore.core.config.ConfigImpl;
 import co.codewizards.cloudstore.core.oio.File;
 import co.codewizards.cloudstore.core.progress.LoggerProgressMonitor;
 import co.codewizards.cloudstore.core.progress.NullProgressMonitor;
@@ -25,7 +29,9 @@ import co.codewizards.cloudstore.core.progress.ProgressMonitor;
 import co.codewizards.cloudstore.core.repo.local.LocalRepoManager;
 import co.codewizards.cloudstore.core.util.IOUtil;
 import co.codewizards.cloudstore.local.AbstractTest;
+import co.codewizards.cloudstore.local.transport.FileRepoTransport;
 
+@RunWith(value = Parameterized.class)
 public class RepoToRepoSyncTest extends AbstractTest {
 	private static Logger logger = LoggerFactory.getLogger(RepoToRepoSyncTest.class);
 
@@ -34,6 +40,22 @@ public class RepoToRepoSyncTest extends AbstractTest {
 
 	private String localPathPrefix;
 	private String remotePathPrefix;
+
+	private boolean useDirForCollisions;
+
+	public RepoToRepoSyncTest(boolean useDirForCollisions) {
+		ConfigImpl.getInstance().setDirectProperty(FileRepoTransport.PROPERTY_KEY_USE_COLLISIONS_DIR,
+				Boolean.toString(useDirForCollisions));
+		this.useDirForCollisions = useDirForCollisions;
+	}
+
+	@Parameterized.Parameters
+	public static Collection<Object[]> parametersToTest() {
+		return Arrays.asList(
+				new Object[] { false },
+				new Object[] { true }
+		);
+	}
 
 	@Override
 	@Before
@@ -452,16 +474,33 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		assertThat(remoteCollisions).isNotNull().hasSize(1);
 		final File r_collision = remoteCollisions.get(0);
 		assertThat(r_collision).isNotNull();
-		assertThat(r_collision.getParentFile()).isEqualTo(r_child_2_1);
+
+		final File remoteCollisionsRoot = remoteRoot.createFile(IOUtil.COLLISIONS_DIRECTORY_NAME);
+		final File localCollisionsRoot = localRoot.createFile(IOUtil.COLLISIONS_DIRECTORY_NAME);
+
+		if (useDirForCollisions)
+			assertThat(r_collision.getParentFile()).isEqualTo(remoteCollisionsRoot.createFile("2", "1"));// r_child_2_1);
+		else
+			assertThat(r_collision.getParentFile()).isEqualTo(r_child_2_1);
 
 		// Expect exactly one collision in local repo (in directory l_child_2_1).
 		final List<File> localCollisions = searchCollisions(localRoot);
 		assertThat(localCollisions).isNotNull().hasSize(1);
 		final File l_collision = localCollisions.get(0);
 		assertThat(l_collision).isNotNull();
-		assertThat(l_collision.getParentFile()).isEqualTo(l_child_2_1);
+		if (useDirForCollisions)
+			assertThat(l_collision.getParentFile()).isEqualTo(localCollisionsRoot.createFile("2", "1"));// r_child_2_1);
+		else
+			assertThat(l_collision.getParentFile()).isEqualTo(l_child_2_1);
 
-		addToFilesInRepo(remoteRoot, r_collision);
+
+		if (useDirForCollisions) {
+			addToFilesInRepo(remoteRoot, remoteCollisionsRoot);
+			addToFilesInRepo(remoteRoot, remoteCollisionsRoot.createFile("2"));
+			addToFilesInRepo(remoteRoot, remoteCollisionsRoot.createFile("2", "1"));
+			addToFilesInRepo(remoteRoot, remoteCollisionsRoot.createFile("2", "1", r_collision.getName()));;
+		} else
+			addToFilesInRepo(remoteRoot, r_collision);
 
 		assertThatFilesInRepoAreCorrect(remoteRoot);
 
@@ -484,8 +523,13 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		final File[] children = file.listFiles();
 		if (children != null) {
 			for (final File f : children) {
-				if (f.getName().contains(IOUtil.COLLISION_FILE_NAME_INFIX))
-					collisions.add(f);
+				if (useDirForCollisions) {
+					if (f.getName().matches(".+\\.[a-z0-9]{8}"))
+						collisions.add(f);
+				} else {
+					if (f.getName().contains(IOUtil.COLLISION_FILE_NAME_INFIX))
+						collisions.add(f);
+				}
 
 				searchCollisions_populate(localRoot, f, collisions);
 			}
@@ -521,15 +565,24 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		assertThat(remoteCollisions).isNotNull().hasSize(1);
 		final File r_collision = remoteCollisions.get(0);
 		assertThat(r_collision).isNotNull();
-		assertThat(r_collision.getParentFile()).isEqualTo(remoteRoot);
 		assertThat(r_collision.getName()).startsWith("2.");
+		if (useDirForCollisions) {
+			assertThat(r_collision.getParentFile().getName()).isEqualTo(IOUtil.COLLISIONS_DIRECTORY_NAME);
+			assertThat(r_collision.getParentFile().getParentFile()).isEqualTo(remoteRoot);
+		} else
+			assertThat(r_collision.getParentFile()).isEqualTo(remoteRoot);
+
 
 		final List<File> localCollisions = searchCollisions(localRoot);
 		assertThat(localCollisions).isNotNull().hasSize(1);
 		final File l_collision = localCollisions.get(0);
 		assertThat(l_collision).isNotNull();
-		assertThat(l_collision.getParentFile()).isEqualTo(localRoot);
 		assertThat(l_collision.getName()).startsWith("2.");
+		if (useDirForCollisions) {
+			assertThat(l_collision.getParentFile().getName()).isEqualTo(IOUtil.COLLISIONS_DIRECTORY_NAME);
+			assertThat(l_collision.getParentFile().getParentFile()).isEqualTo(localRoot);
+		} else
+			assertThat(l_collision.getParentFile()).isEqualTo(localRoot);
 	}
 
 	@Test
@@ -561,15 +614,23 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		assertThat(remoteCollisions).isNotNull().hasSize(1);
 		final File r_collision = remoteCollisions.get(0);
 		assertThat(r_collision).isNotNull();
-		assertThat(r_collision.getParentFile()).isEqualTo(remoteRoot);
 		assertThat(r_collision.getName()).startsWith("2.");
+		if (useDirForCollisions) {
+			assertThat(r_collision.getParentFile().getName()).isEqualTo(IOUtil.COLLISIONS_DIRECTORY_NAME);
+			assertThat(r_collision.getParentFile().getParentFile()).isEqualTo(remoteRoot);
+		} else
+			assertThat(r_collision.getParentFile()).isEqualTo(remoteRoot);
 
 		final List<File> localCollisions = searchCollisions(localRoot);
 		assertThat(localCollisions).isNotNull().hasSize(1);
 		final File l_collision = localCollisions.get(0);
 		assertThat(l_collision).isNotNull();
-		assertThat(l_collision.getParentFile()).isEqualTo(localRoot);
 		assertThat(l_collision.getName()).startsWith("2.");
+		if (useDirForCollisions) {
+			assertThat(l_collision.getParentFile().getName()).isEqualTo(IOUtil.COLLISIONS_DIRECTORY_NAME);
+			assertThat(l_collision.getParentFile().getParentFile()).isEqualTo(localRoot);
+		} else
+			assertThat(l_collision.getParentFile()).isEqualTo(localRoot);
 	}
 
 // TODO test this collision:
