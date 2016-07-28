@@ -5,10 +5,14 @@ import static co.codewizards.cloudstore.core.repo.local.LocalRepoManager.REPOSIT
 
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import java.util.LinkedList;
@@ -31,43 +35,68 @@ public class IgnoreRuleManager {
 	public IgnoreRuleManager() {
 	
 	}
-	
+
 	public List<IgnoreRule> getExclusionList(File localRoot) {
 		if (exclusionList == null) {
 			exclusionList = new LinkedList<>();
 			this.loadExclusionsFromFile(localRoot);
 		}
-		
+
 		return exclusionList;
 	}
-	
+
 	public void loadExclusionsFromFile(File localRoot) {
-		
-		Properties prop = new Properties();
-		InputStream input = null;
-		
+
+		Properties prop1 = new Properties();
+		Properties prop2 = new Properties();
+		Properties prop3 = new Properties();
+		InputStream input1 = null;
+		InputStream input2 = null;
+		OutputStream output = null;
+
 		try {
 			System.out.println(localRoot.getAbsolutePath());
 
-			Writer output;
-			output = new BufferedWriter(new FileWriter(localRoot.getAbsolutePath() 
-					+ "/.cloudstore-repo/cloudstore-repository.properties"));  //clears file every time
-			output.append("nameRegex=^~.*\\$$|^.*test.*$|^.*aaa.*$");
-			
-			output.close();
-			
-			input = new FileInputStream(localRoot.getAbsolutePath() 
+			Path path = Paths.get(System.getProperty("user.home") + "/.cloudstore/cloudstore.properties");
+
+			input1 = new FileInputStream(path.toString());
+
+			prop1.load(input1);
+			input1.close();
+
+			String regex = prop1.getProperty("nameRegex");
+
+			input2 = new FileInputStream(localRoot.getAbsolutePath() 
 					+ "/.cloudstore-repo/cloudstore-repository.properties");
-			prop.load(input);
-			
-			exclusionList.add(new IgnoreRule(prop.getProperty("nameRegex")));
+			prop2.load(input2);
+			input2.close();
+
+			if (prop2.getProperty("nameRegex") == null) {
+
+				output = new FileOutputStream(localRoot.getAbsolutePath() 
+						+ "/.cloudstore-repo/cloudstore-repository.properties");
+
+				prop3.setProperty("nameRegex", regex);
+				prop3.store(output, null);
+
+				output.close();
+			}
+
+			input2 = new FileInputStream(localRoot.getAbsolutePath() 
+					+ "/.cloudstore-repo/cloudstore-repository.properties");
+			prop2.load(input2);
+
+			exclusionList.add(new IgnoreRule(prop2.getProperty("nameRegex")));
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+
 		} finally {
-			if (input != null) {
+			if (input2 != null) {
 				try {
-					input.close();
+					input2.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

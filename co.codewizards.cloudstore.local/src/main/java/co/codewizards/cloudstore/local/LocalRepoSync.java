@@ -158,6 +158,7 @@ public class LocalRepoSync {
 				logger.debug(file.getPath() + " is in the excluded file list");
 				return null;
 			}
+
 			// If the type changed - e.g. from normal file to directory - or if
 			// the file was deleted
 			// we must delete the old instance.
@@ -347,11 +348,11 @@ public class LocalRepoSync {
 	}
 
 	public void updateRepoFile(final RepoFile repoFile, final File file, final ProgressMonitor monitor) {
-		//IgnoreRuleManager manager = new IgnoreRuleManager();
-		//if (manager.isExcluded(file)) {
-		//	logger.debug(repoFile.getPath() + " is in the excluded file list");
-		//	return;
-		//}
+		// IgnoreRuleManager manager = new IgnoreRuleManager();
+		// if (manager.isExcluded(file)) {
+		// logger.debug(repoFile.getPath() + " is in the excluded file list");
+		// return;
+		// }
 		logger.debug("updateRepoFile: id={} file={}", repoFile.getId(), file);
 		monitor.beginTask("Local sync...", 100);
 		try {
@@ -377,7 +378,7 @@ public class LocalRepoSync {
 		} finally {
 			monitor.done();
 		}
-		
+
 	}
 
 	public void deleteRepoFile(final RepoFile repoFile) {
