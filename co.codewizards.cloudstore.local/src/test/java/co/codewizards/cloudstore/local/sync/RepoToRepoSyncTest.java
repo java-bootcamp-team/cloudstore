@@ -16,6 +16,7 @@ import java.util.Properties;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,7 +142,7 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		assertDirectoriesAreEqualRecursively(getLocalRootWithPathPrefix(),
 				getRemoteRootWithPathPrefix());
 	}
-
+	
 	@Test
 	public void syncFilesThatNotMatchRegexPattern() throws Exception {
 		localRoot = newTestRepositoryLocalRoot("local");
@@ -184,10 +185,10 @@ public class RepoToRepoSyncTest extends AbstractTest {
 
 		final File child_1_a = createFileWithRandomContent(child_1, "a");
 		final File ignoredFile = createFileWithRandomContent(child_1,
-				"1gn0reM3");
+				"ignoreM3");
 
 		assertThat(
-				createFile(remoteRoot.getAbsolutePath() + "/1/", "1gn0reM3")
+				createFile(remoteRoot.getAbsolutePath() + "/1/", "ignoreM3")
 						.existsNoFollow()).isTrue();
 		assertThat(ignoredFile.existsNoFollow()).isTrue();
 
@@ -199,10 +200,11 @@ public class RepoToRepoSyncTest extends AbstractTest {
 
 		assertThatNoCollisionInRepo(localRoot);
 		assertThatNoCollisionInRepo(remoteRoot);
-
+		assertThatFilesInRepoAreCorrect(remoteRoot);
+		
 		assertThat(child_1_a.existsNoFollow()).isTrue();
 		assertThat(
-				(createFile(localRoot.getAbsolutePath() + "/1/", "1gn0reM3"))
+				(createFile(localRoot.getAbsolutePath() + "/1/", "ignoreM3"))
 						.existsNoFollow()).isFalse();
 
 		repoToRepoSync.close();
@@ -791,7 +793,7 @@ public class RepoToRepoSyncTest extends AbstractTest {
 		assertDirectoriesAreEqualRecursively(getLocalRootWithPathPrefix(),
 				getRemoteRootWithPathPrefix());
 	}
-
+	
 	@Test
 	public void syncSymlinkFile() throws Exception {
 		localRoot = newTestRepositoryLocalRoot("local");

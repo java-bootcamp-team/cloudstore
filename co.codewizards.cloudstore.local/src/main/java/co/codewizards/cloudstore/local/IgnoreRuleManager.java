@@ -43,8 +43,6 @@ public class IgnoreRuleManager {
 		OutputStream output = null;
 
 		try {
-			System.out.println(localRoot.getAbsolutePath());
-
 			Path path = Paths.get(System.getProperty("user.home")
 					+ "/.cloudstore/cloudstore.properties");
 
