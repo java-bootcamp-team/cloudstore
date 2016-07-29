@@ -42,7 +42,7 @@ public final class IOUtil {
 	public static final long GIGABYTE = 1 * 1024 * 1024 * 1024;
 
 	public static final String COLLISION_FILE_NAME_INFIX = ".collision";
-
+	public static final String COLLISIONS_DIRECTORY_NAME = ".collisions";
 	private static File tempDir = null;
 
 	private static final Logger logger = LoggerFactory.getLogger(IOUtil.class);
@@ -1364,6 +1364,10 @@ public final class IOUtil {
     }
 
 	public static File createCollisionFile(final File file) {
+		return createCollisionFile(file, true);
+	}
+
+	private static File createCollisionFile(final File file, boolean addInfix) {
 		final File parentFile = file.getParentFile();
 		final String fileName = file.getName();
 
@@ -1375,8 +1379,21 @@ public final class IOUtil {
 				String.format("%s.%s%s%s",
 						fileName,
 						Long.toString(System.currentTimeMillis(), 36),
-						COLLISION_FILE_NAME_INFIX,
+						addInfix ? COLLISION_FILE_NAME_INFIX : "",
 						fileExtension));
+		return result;
+	}
+
+	public static File createCollisionFileInDirectory(final File file, final File repoRoot) {
+		File collisionRoot = repoRoot.createFile(COLLISIONS_DIRECTORY_NAME);
+		File collisionFile = createCollisionFile(file, false);
+		File result = null;
+		try {
+			result = createFile(collisionRoot, repoRoot.relativize(collisionFile));
+		} catch (IOException e) {
+			return collisionFile;
+		}
+
 		return result;
 	}
 

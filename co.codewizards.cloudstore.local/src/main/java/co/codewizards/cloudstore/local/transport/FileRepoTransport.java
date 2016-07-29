@@ -84,10 +84,10 @@ public class FileRepoTransport extends AbstractRepoTransport implements LocalRep
 	private static final Logger logger = LoggerFactory.getLogger(FileRepoTransport.class);
 
 	private static final long MAX_REMOTE_REPOSITORY_REQUESTS_QUANTITY = 100; // TODO make configurable!
-
+	public static final String PROPERTY_KEY_USE_COLLISIONS_DIR = "useSeparateDirectoryForCollisions";
 	private LocalRepoManager localRepoManager;
 	private final TempChunkFileManager tempChunkFileManager = TempChunkFileManager.getInstance();
-
+	private final boolean useSeparateDirForCollisions =  ConfigImpl.getInstance().getPropertyAsBoolean(PROPERTY_KEY_USE_COLLISIONS_DIR, false);
 	@Override
 	public void close() {
 		if (localRepoManager != null) {
@@ -812,7 +812,15 @@ public class FileRepoTransport extends AbstractRepoTransport implements LocalRep
 		assertNotNull("transaction", transaction);
 		assertNotNull("fromRepositoryId", fromRepositoryId);
 		assertNotNull("file", file);
-		final File collisionFile = IOUtil.createCollisionFile(file);
+
+		final File collisionFile;
+		if (useSeparateDirForCollisions) {
+			collisionFile = IOUtil.createCollisionFileInDirectory(file, this.getLocalRepoManager().getLocalRoot());
+			collisionFile.getParentFile().mkdirs();
+		} else {
+			collisionFile = IOUtil.createCollisionFile(file);
+		}
+
 		file.renameTo(collisionFile);
 		if (file.exists())
 			throw new IllegalStateException("Could not rename file to resolve collision: " + file);
